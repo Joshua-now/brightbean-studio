@@ -242,3 +242,11 @@ def test_success_page_offers_return(configured):
     page = Client().post(reverse("onboarding:connection_done", kwargs={"token": link.token}), secure=True)
     assert page.status_code == 200
     assert f"https://{HOST}/marketing" in page.content.decode()
+
+
+@pytest.mark.django_db
+def test_ping(configured, org):
+    ok = Client().get("/api/v1/provision/ping", HTTP_AUTHORIZATION=f"Bearer {TOKEN}", secure=True)
+    assert ok.status_code == 200 and ok.json()["organization"] == "House Org"
+    bad = Client().get("/api/v1/provision/ping", HTTP_AUTHORIZATION=f"Bearer {'w' * 48}", secure=True)
+    assert bad.status_code == 401

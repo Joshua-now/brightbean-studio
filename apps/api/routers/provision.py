@@ -171,6 +171,19 @@ def _allowed_return(url: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+class PingOut(Schema):
+    ok: bool
+    organization: str
+
+
+@router.get("/ping", response=PingOut, summary="Check the token and the operator/org config")
+def ping(request):
+    """Harmless health probe for the calling app's monitoring: 401 = token mismatch,
+    503 = operator/org misconfigured, 200 = provisioning will work."""
+    org, _ = _operator_and_org()
+    return PingOut(ok=True, organization=org.name)
+
+
 @router.post("/workspaces", response=WorkspaceOut, summary="Create or fetch a provisioned workspace")
 def provision_workspace(request, payload: WorkspaceIn):
     ext = _clean_external_id(payload.external_id)
