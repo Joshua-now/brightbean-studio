@@ -64,6 +64,21 @@ def _get_connection_link_or_none(token):
         return None
 
 
+def _connectable_platforms(link):
+    """Platforms this link may connect: everything configured, narrowed for workspaces
+    made by the provisioning API to PROVISION_CONNECT_PLATFORMS. Those customers
+    arrive from an outside app (AITeammate/Lexi) that can only publish to a few
+    platforms; offering Bluesky, Mastodon, DEV.to or Google Business there lets them
+    connect accounts nothing will ever post to."""
+    from apps.api.models import ProvisionedWorkspace
+
+    configured = set(_get_configured_platforms(link.workspace.organization_id))
+    if ProvisionedWorkspace.objects.filter(workspace_id=link.workspace_id).exists():
+        allowed = set(getattr(settings, "PROVISION_CONNECT_PLATFORMS", []) or [])
+        configured &= allowed
+    return configured
+
+
 def _sign_connection_link_state(workspace_id, platform, token, nonce):
     """Create a signed OAuth state for the connection link flow."""
     return signing.dumps(
@@ -265,7 +280,7 @@ def connection_page(request, token):
     org = workspace.organization
 
     # Get configured platforms
-    configured_platforms = _get_configured_platforms(org.id)
+    configured_platforms = _connectable_platforms(link)
 
     # Get accounts already connected via this link
     connected_usages = ConnectionLinkUsage.objects.filter(connection_link=link).select_related("social_account")
@@ -312,8 +327,7 @@ def connection_oauth_start(request, token):
         return redirect("onboarding:connection_page", token=token)
 
     org = link.workspace.organization
-    configured_platforms = _get_configured_platforms(org.id)
-    if platform not in configured_platforms:
+    if platform not in _connectable_platforms(link):
         return redirect("onboarding:connection_page", token=token)
 
     # Bluesky and Mastodon use their own forms on the connection page
@@ -596,6 +610,8 @@ def connection_bluesky_connect(request, token):
     link = _get_connection_link_or_none(token)
     if not link or not link.is_active:
         return render(request, "onboarding/connection_expired.html", status=400)
+    if PlatformCredential.Platform.BLUESKY not in _connectable_platforms(link):
+        return redirect("onboarding:connection_page", token=token)
 
     handle = request.POST.get("handle", "").strip()
     app_password = request.POST.get("app_password", "").strip()
@@ -641,6 +657,8 @@ def connection_mastodon_start(request, token):
     link = _get_connection_link_or_none(token)
     if not link or not link.is_active:
         return render(request, "onboarding/connection_expired.html", status=400)
+    if PlatformCredential.Platform.MASTODON not in _connectable_platforms(link):
+        return redirect("onboarding:connection_page", token=token)
 
     instance_url = _normalize_mastodon_instance_url(request.POST.get("instance_url", ""))
     if not instance_url:

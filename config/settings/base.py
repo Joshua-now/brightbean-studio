@@ -300,6 +300,11 @@ PROVISIONING_TOKEN = env("PROVISIONING_TOKEN", default="")
 PROVISION_ORG_ID = env("PROVISION_ORG_ID", default="")
 PROVISION_OPERATOR_EMAIL = env("PROVISION_OPERATOR_EMAIL", default="")
 PROVISION_RETURN_HOSTS = env.list("PROVISION_RETURN_HOSTS", default=[])
+# What a provisioned (outside-app) workspace's connect page offers. Only what the
+# calling app can publish to; everything else is hidden AND refused server-side.
+PROVISION_CONNECT_PLATFORMS = env.list(
+    "PROVISION_CONNECT_PLATFORMS", default=["facebook", "instagram", "instagram_login", "youtube"]
+)
 ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
 

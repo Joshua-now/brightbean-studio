@@ -250,3 +250,37 @@ def test_ping(configured, org):
     assert ok.status_code == 200 and ok.json()["organization"] == "House Org"
     bad = Client().get("/api/v1/provision/ping", HTTP_AUTHORIZATION=f"Bearer {'w' * 48}", secure=True)
     assert bad.status_code == 401
+
+
+@pytest.mark.django_db
+def test_provisioned_connect_page_only_offers_allowed_platforms(configured, org, operator):
+    """Contractor links show only what the outside app can publish to — and refuse the rest."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+
+    from apps.onboarding.models import ConnectionLink
+    from apps.workspaces.models import Workspace
+
+    ws = _post("/workspaces", {"external_id": "tenant-p", "name": "P"}).json()["workspace_id"]
+    _post(f"/workspaces/{ws}/connection-link", {})
+    link = ConnectionLink.objects.get(workspace_id=ws, revoked_at__isnull=True)
+    page = Client().get(reverse("onboarding:connection_page", kwargs={"token": link.token}), secure=True)
+    assert page.status_code == 200
+    assert "Bluesky" not in page.content.decode()  # session-auth platform, always "configured"
+
+    # Server-side too: a hand-made Bluesky POST is bounced before any provider call.
+    r = Client().post(
+        reverse("onboarding:connection_bluesky", kwargs={"token": link.token}),
+        {"handle": "x.bsky.social", "app_password": "xxxx-xxxx-xxxx-xxxx"},
+        secure=True,
+    )
+    assert r.status_code == 302
+
+    # A normal (hand-made) workspace's link is unaffected.
+    plain = Workspace.objects.create(name="Agency client", organization=org)
+    plain_link = ConnectionLink.objects.create(
+        workspace=plain, created_by=operator, expires_at=timezone.now() + timedelta(hours=1)
+    )
+    plain_page = Client().get(reverse("onboarding:connection_page", kwargs={"token": plain_link.token}), secure=True)
+    assert "Bluesky" in plain_page.content.decode()
