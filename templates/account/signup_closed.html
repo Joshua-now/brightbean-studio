@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Sign up closed{% endblock %}
+
+{% block auth_content %}
+<div class="w-full max-w-md px-4">
+    <div class="auth-card text-center">
+        <h1 class="text-xl font-bold tracking-tight mb-2" style="color: var(--text-primary);">Sign up is by invitation</h1>
+        <p class="text-sm" style="color: var(--text-secondary);">
+            New accounts on this workspace need an invitation. If you were sent one, open the link in that email.
+        </p>
+        <p class="text-sm mt-6">
+            <a href="{% url 'account_login' %}" class="font-semibold hover:underline" style="color: var(--primary);">Back to sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

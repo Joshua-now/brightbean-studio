@@ -115,6 +115,7 @@ TEMPLATES = [
                 "apps.common.context_processors.sidebar_context",
                 "apps.onboarding.context_processors.onboarding_checklist",
                 "apps.intelligence.context_processors.intelligence_flag",
+                "apps.accounts.context_processors.signup_flag",
             ],
         },
     },
@@ -289,6 +290,9 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = False
+# Public self-signup. Set SIGNUP_OPEN=false on a private install: new accounts
+# then need a pending workspace invitation (see apps/accounts/adapters.py).
+SIGNUP_OPEN = env.bool("SIGNUP_OPEN", default=True)
 ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
 
