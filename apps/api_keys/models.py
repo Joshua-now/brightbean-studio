@@ -69,6 +69,15 @@ class ApiKey(models.Model):
         default=list,
         help_text="List of permission keys the holder is granted (subset of PERMISSION_KEYS).",
     )
+    all_workspace_accounts = models.BooleanField(
+        default=False,
+        help_text=(
+            "When true the key may act on EVERY account in its workspace, including ones "
+            "connected after the key was issued, and the explicit allowlist is ignored. "
+            "Used by provisioned keys (apps/api/routers/provision.py) where a contractor "
+            "connects accounts after their workspace and key already exist."
+        ),
+    )
 
     expires_at = models.DateTimeField(blank=True, null=True)
     revoked_at = models.DateTimeField(blank=True, null=True, db_index=True)

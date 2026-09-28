@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
 
+from apps.api.auth import allowed_accounts
 from apps.api.limits import enforce_http_rate_limits
 from apps.api.middleware import (
     claim_idempotency_slot,
@@ -64,7 +65,7 @@ def _require_perm(request: HttpRequest, key: str) -> None:
 
 
 def _allowlisted_account_ids(request: HttpRequest) -> set[uuid.UUID]:
-    return {sa.id for sa in request.api_key.social_accounts.all()}  # type: ignore[attr-defined]
+    return {sa.id for sa in allowed_accounts(request.api_key)}  # type: ignore[attr-defined]
 
 
 def _visible_messages_qs(request: HttpRequest) -> QuerySet[InboxMessage]:

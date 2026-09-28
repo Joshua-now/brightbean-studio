@@ -585,6 +585,7 @@ def connection_done(request, token):
             "workspace": link.workspace,
             "org": link.workspace.organization,
             "connected_count": connected_count,
+            "return_url": link.return_url,
         },
     )
 

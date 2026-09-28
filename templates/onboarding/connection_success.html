@@ -50,6 +50,20 @@
         <strong style="color: var(--text-secondary);">{{ org.name }}</strong> has been notified and will take it from here.
     </p>
 
+    {% if return_url %}
+    <a href="{{ return_url }}" id="return-link" style="
+        display: inline-block;
+        padding: 12px 24px;
+        background: var(--primary-600, #2563eb);
+        color: #fff;
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 12px;
+    ">Back to your dashboard</a>
+    <p style="font-size: 0.8125rem; color: var(--text-tertiary);">Taking you back in a few seconds&hellip;</p>
+    <script nonce="{{ request.csp_nonce }}">setTimeout(function () { window.location.href = document.getElementById("return-link").href; }, 4000);</script>
+    {% else %}
     <div style="
         padding: 16px;
         background: var(--primary-soft);
@@ -61,5 +75,6 @@
     ">
         You can close this page. Your agency team will be in touch soon.
     </div>
+    {% endif %}
 </div>
 {% endblock %}

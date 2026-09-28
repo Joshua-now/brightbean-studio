@@ -141,6 +141,7 @@ def issue_api_key(
     name: str,
     permissions: list[str],
     expires_at=None,
+    all_workspace_accounts: bool = False,
 ) -> IssuedKey:
     """Create a new ``ApiKey`` and return the plaintext token alongside.
 
@@ -164,7 +165,9 @@ def issue_api_key(
     from apps.members.models import OrgMembership, WorkspaceMembership, has_org_permission
 
     sa_list = list(social_accounts)
-    if not sa_list:
+    # A workspace-wide key needs no allowlist: it covers every account in its
+    # workspace, including ones connected later (provisioned contractor keys).
+    if not sa_list and not all_workspace_accounts:
         raise ValueError("An API key must allowlist at least one connected account.")
     for sa in sa_list:
         if sa.workspace_id != workspace.id:
@@ -207,6 +210,7 @@ def issue_api_key(
         token_hash=token_hash,
         permissions=sorted(requested),
         expires_at=expires_at,
+        all_workspace_accounts=all_workspace_accounts,
     )
     api_key.social_accounts.set(sa_list)
     return IssuedKey(api_key=api_key, plaintext_token=plaintext)

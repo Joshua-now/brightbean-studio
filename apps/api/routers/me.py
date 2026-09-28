@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ninja import Router
 
+from apps.api.auth import allowed_accounts
 from apps.api.limits import enforce_http_rate_limits
 from apps.api.middleware import log_audit_entry
 from apps.api.schemas import AccountSummary, MeResponse, StorageSummary
@@ -17,7 +18,7 @@ def me(request):
     enforce_http_rate_limits(request, is_write=False)
     api_key = request.api_key
     workspace = request.workspace
-    accounts = [AccountSummary.from_social_account(sa) for sa in api_key.social_accounts.all()]
+    accounts = [AccountSummary.from_social_account(sa) for sa in allowed_accounts(api_key)]
 
     organization = workspace.organization
     quota = resolve_storage_quota(organization)

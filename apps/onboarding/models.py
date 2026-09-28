@@ -33,6 +33,10 @@ class ConnectionLink(models.Model):
     )
     expires_at = models.DateTimeField()
     revoked_at = models.DateTimeField(null=True, blank=True)
+    # Where to send the person back to when they finish (e.g. the Lexi
+    # Marketing page). Only set by the provisioning API, which checks the host
+    # against PROVISION_RETURN_HOSTS - never taken from the public request.
+    return_url = models.URLField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = WorkspaceScopedManager()

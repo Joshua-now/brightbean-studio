@@ -25,6 +25,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from apps.api.auth import allowed_accounts
 from apps.api.limits import check_platform_quota, enforce_http_rate_limits
 from apps.api.middleware import (
     claim_idempotency_slot,
@@ -75,7 +76,7 @@ def _resolve_account(request: HttpRequest, social_account_id: uuid.UUID) -> Soci
     listed at issuance time.
     """
     api_key = request.api_key  # type: ignore[attr-defined]  # set by ApiKeyAuth
-    allowlist_ids = {sa.id for sa in api_key.social_accounts.all()}
+    allowlist_ids = {sa.id for sa in allowed_accounts(api_key)}
     if social_account_id not in allowlist_ids:
         raise HttpError(403, "SocialAccount is not in this key's allowlist.")
     return SocialAccount.objects.get(id=social_account_id)
@@ -125,7 +126,7 @@ def _get_workspace_post(request: HttpRequest, post_id: uuid.UUID) -> Post:
         id=post_id,
         workspace_id=request.api_key.workspace_id,  # type: ignore[attr-defined]
     )
-    allowed_ids = {sa.id for sa in request.api_key.social_accounts.all()}  # type: ignore[attr-defined]
+    allowed_ids = {sa.id for sa in allowed_accounts(request.api_key)}  # type: ignore[attr-defined]
     pp_account_ids = {pp.social_account_id for pp in post.platform_posts.all()}
     # No platform_posts → nothing this key could legitimately act on.
     # Foreign child → leaking even via a read would be a confused-deputy.

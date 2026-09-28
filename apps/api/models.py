@@ -55,3 +55,27 @@ class IdempotencyRecord(models.Model):
 
     def __str__(self):
         return f"Idem({self.api_key_id}/{self.key}) -> {self.response_status}"
+
+
+class ProvisionedWorkspace(models.Model):
+    """A workspace created through the provisioning API for an outside system.
+
+    ``external_id`` is the caller's own id for the customer (e.g. a Lexi
+    tenant id), which makes workspace creation idempotent: asking twice for
+    the same external id returns the same workspace instead of a second one.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    external_id = models.CharField(max_length=64, unique=True)
+    workspace = models.OneToOneField(
+        "workspaces.Workspace",
+        on_delete=models.CASCADE,
+        related_name="provisioned",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "api_provisioned_workspace"
+
+    def __str__(self):
+        return f"{self.external_id} -> {self.workspace_id}"

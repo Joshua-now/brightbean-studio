@@ -23,6 +23,7 @@ from django.db.models import Exists, OuterRef
 from ninja.errors import HttpError
 
 from apps.analytics.api_builders import build_account_analytics, build_post_analytics
+from apps.api.auth import allowed_accounts
 from apps.api.limits import check_platform_quota
 from apps.api.pagination import decode_offset_cursor, encode_offset_cursor
 from apps.api.schemas import PostResponse
@@ -80,7 +81,7 @@ def _parse_uuid(value: Any, field_name: str) -> UUID:
 
 def _resolve_allowed_account(api_key, social_account_id_str: str) -> SocialAccount:
     sa_id = _parse_uuid(social_account_id_str, "social_account_id")
-    allowed = {sa.id for sa in api_key.social_accounts.all()}
+    allowed = {sa.id for sa in allowed_accounts(api_key)}
     if sa_id not in allowed:
         raise JsonRpcError(INVALID_PARAMS, "social_account_id is not in this API key's allowlist")
     return SocialAccount.objects.get(id=sa_id)
@@ -147,7 +148,7 @@ def _visible_posts_qs(api_key):
     than filtering child rows in Python) so callers can order, filter and
     paginate on it without scanning rows they may not see.
     """
-    allowed = [sa.id for sa in api_key.social_accounts.all()]
+    allowed = [sa.id for sa in allowed_accounts(api_key)]
     # A key can end up with an empty allowlist at runtime (its last account was
     # disconnected/deleted). Short-circuit rather than leaning on Django folding
     # ``__in=[]`` inside an ``exclude`` into a no-op: fail closed explicitly.
@@ -200,7 +201,7 @@ def _list_accounts(args: dict, context: dict[str, Any]) -> dict:
     # Reuse the REST schema so MCP and REST stay byte-identical (Gap 4 + 5).
     from apps.api.schemas import AccountSummary
 
-    accounts = [AccountSummary.from_social_account(sa).model_dump(mode="json") for sa in api_key.social_accounts.all()]
+    accounts = [AccountSummary.from_social_account(sa).model_dump(mode="json") for sa in allowed_accounts(api_key)]
     return _wrap_text({"accounts": accounts})
 
 
@@ -1226,7 +1227,7 @@ register_tool(
 
 
 def _inbox_allowed_account_ids(api_key) -> list:
-    return [sa.id for sa in api_key.social_accounts.all()]
+    return [sa.id for sa in allowed_accounts(api_key)]
 
 
 def _visible_inbox_qs(api_key):

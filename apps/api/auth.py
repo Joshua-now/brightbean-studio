@@ -205,6 +205,20 @@ def _client_ip(request: HttpRequest) -> str | None:
 _MCP_OAUTH_SCOPE = "mcp"
 
 
+def allowed_accounts(api_key: Any):
+    """The accounts a caller may act on - the ONE place every router asks.
+
+    A normal key's explicit allowlist; for a key issued with
+    ``all_workspace_accounts`` (or an OAuth actor, whose ``social_accounts``
+    is already workspace-wide) every account in the key's workspace.
+    """
+    if getattr(api_key, "all_workspace_accounts", False):
+        from apps.social_accounts.models import SocialAccount
+
+        return SocialAccount.objects.filter(workspace_id=api_key.workspace_id)
+    return api_key.social_accounts.all()
+
+
 class _AllWorkspaceAccounts:
     """Duck-types ``ApiKey.social_accounts`` for an OAuth caller.
 

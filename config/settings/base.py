@@ -293,6 +293,13 @@ SOCIALACCOUNT_LOGIN_ON_GET = False
 # Public self-signup. Set SIGNUP_OPEN=false on a private install: new accounts
 # then need a pending workspace invitation (see apps/accounts/adapters.py).
 SIGNUP_OPEN = env.bool("SIGNUP_OPEN", default=True)
+
+# Provisioning API (/api/v1/provision). One trusted outside app (AITeammate/Lexi)
+# creates customer workspaces with this shared token. Empty token = API off.
+PROVISIONING_TOKEN = env("PROVISIONING_TOKEN", default="")
+PROVISION_ORG_ID = env("PROVISION_ORG_ID", default="")
+PROVISION_OPERATOR_EMAIL = env("PROVISION_OPERATOR_EMAIL", default="")
+PROVISION_RETURN_HOSTS = env.list("PROVISION_RETURN_HOSTS", default=[])
 ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
 

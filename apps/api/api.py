@@ -24,6 +24,8 @@ from apps.api.routers.inbox import router as inbox_router
 from apps.api.routers.me import router as me_router
 from apps.api.routers.media import router as media_router
 from apps.api.routers.posts import router as posts_router
+from apps.api.routers.provision import ProvisionAuth
+from apps.api.routers.provision import router as provision_router
 from apps.mcp.transport import router as mcp_router
 
 
@@ -78,6 +80,8 @@ api.add_router("/posts", posts_router)
 api.add_router("/media", media_router)
 api.add_router("/analytics", analytics_router)
 api.add_router("/inbox", inbox_router)
+# Operator-only provisioning (own service token, not an ApiKey). Off unless PROVISIONING_TOKEN is set.
+api.add_router("/provision", provision_router, auth=ProvisionAuth())
 # MCP Streamable HTTP transport. Same audit + rate limits as REST, but a
 # wider auth class: ``McpAuth`` accepts both bb_studio_ keys AND OAuth 2.1
 # access tokens (Claude Desktop's native connector flow). Mounted last so
