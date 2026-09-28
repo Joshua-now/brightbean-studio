@@ -97,6 +97,32 @@ def test_plain_http_refused(configured):
 
 
 @pytest.mark.django_db
+def test_org_id_optional_when_operator_has_one_org(operator):
+    """Signup gives every user one org; with PROVISION_ORG_ID blank that org is used."""
+    from apps.workspaces.models import Workspace
+
+    (only_org,) = OrgMembership.objects.filter(user=operator).values_list("organization_id", flat=True)
+    with override_settings(
+        PROVISIONING_TOKEN=TOKEN, PROVISION_ORG_ID="", PROVISION_OPERATOR_EMAIL="operator@example.com"
+    ):
+        r = _post("/workspaces", {"external_id": "solo", "name": "Solo"})
+        assert r.status_code == 200, r.content
+        assert Workspace.objects.get(id=r.json()["workspace_id"]).organization_id == only_org
+
+
+@pytest.mark.django_db
+def test_org_id_required_when_operator_has_several_orgs(org, operator):
+    from apps.organizations.models import Organization
+
+    other = Organization.objects.create(name="Second Org")
+    OrgMembership.objects.create(user=operator, organization=other, org_role=OrgMembership.OrgRole.OWNER)
+    with override_settings(
+        PROVISIONING_TOKEN=TOKEN, PROVISION_ORG_ID="", PROVISION_OPERATOR_EMAIL="operator@example.com"
+    ):
+        assert _post("/workspaces", {"external_id": "amb", "name": "A"}).status_code == 503
+
+
+@pytest.mark.django_db
 def test_unconfigured_org_is_503(org):
     with override_settings(PROVISIONING_TOKEN=TOKEN, PROVISION_ORG_ID="", PROVISION_OPERATOR_EMAIL=""):
         assert _post("/workspaces", {"external_id": "t1", "name": "A"}).status_code == 503

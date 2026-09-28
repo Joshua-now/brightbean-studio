@@ -109,21 +109,32 @@ class LinkOut(Schema):
 
 
 def _operator_and_org():
-    """The org new workspaces live in and the account that owns them."""
-    org_id = (getattr(settings, "PROVISION_ORG_ID", "") or "").strip()
-    email = (getattr(settings, "PROVISION_OPERATOR_EMAIL", "") or "").strip().lower()
-    if not org_id or not email:
-        raise HttpError(503, "Provisioning is not configured on this install.")
-    org = Organization.objects.filter(id=org_id).first()
-    if org is None:
-        raise HttpError(503, "PROVISION_ORG_ID does not match an organization.")
+    """The org new workspaces live in and the account that owns them.
+
+    PROVISION_ORG_ID may be left blank when the operator belongs to exactly one
+    organization - that org is used. Ambiguous (several orgs) = refuse.
+    """
     from apps.accounts.models import User
     from apps.members.models import OrgMembership
 
+    org_id = (getattr(settings, "PROVISION_ORG_ID", "") or "").strip()
+    email = (getattr(settings, "PROVISION_OPERATOR_EMAIL", "") or "").strip().lower()
+    if not email:
+        raise HttpError(503, "Provisioning is not configured on this install.")
     operator = User.objects.filter(email__iexact=email).first()
-    if operator is None or not OrgMembership.objects.filter(user=operator, organization=org).exists():
-        raise HttpError(503, "PROVISION_OPERATOR_EMAIL is not a member of the provisioning organization.")
-    return org, operator
+    if operator is None:
+        raise HttpError(503, "PROVISION_OPERATOR_EMAIL does not match an account.")
+    if org_id:
+        org = Organization.objects.filter(id=org_id).first()
+        if org is None:
+            raise HttpError(503, "PROVISION_ORG_ID does not match an organization.")
+        if not OrgMembership.objects.filter(user=operator, organization=org).exists():
+            raise HttpError(503, "PROVISION_OPERATOR_EMAIL is not a member of the provisioning organization.")
+        return org, operator
+    org_ids = list(OrgMembership.objects.filter(user=operator).values_list("organization_id", flat=True)[:2])
+    if len(org_ids) != 1:
+        raise HttpError(503, "Operator must belong to exactly one organization, or set PROVISION_ORG_ID.")
+    return Organization.objects.get(id=org_ids[0]), operator
 
 
 def _clean_external_id(raw: str) -> str:
